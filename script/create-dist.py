@@ -159,7 +159,7 @@ def copy_binaries():
                     symlinks=True)
 
 
-def copy_chrome_binary(binary, src_dir, dest_dir):
+def copy_chrome_binary(binary, src_dir, dest_dir, is_native_mksnapshot = False):
   if PLATFORM == 'win32':
     binary += '.exe'
   src = os.path.join(src_dir, binary)
@@ -168,12 +168,12 @@ def copy_chrome_binary(binary, src_dir, dest_dir):
   # Copy file and keep the executable bit.
   shutil.copyfile(src, dest)
   os.chmod(dest, os.stat(dest).st_mode | stat.S_IEXEC)
-  if binary == 'mksnapshot':
-   snapshot_gen_path =  os.path.join(src_dir, 'snapshot_gen', '*')
-   snapshot_gen_files = glob.glob(snapshot_gen_path)
-   snapshot_gen_files += [ os.path.join(src_dir, get_ffmpeg_name()) ]
-   for gen_file in snapshot_gen_files:
-     shutil.copy2(gen_file, dest_dir)
+  if binary.startswith('mksnapshot') and not is_native_mksnapshot:
+    snapshot_gen_path =  os.path.join(src_dir, 'snapshot_gen', '*')
+    snapshot_gen_files = glob.glob(snapshot_gen_path)
+    snapshot_gen_files += [ os.path.join(src_dir, get_ffmpeg_name()) ]
+    for gen_file in snapshot_gen_files:
+      shutil.copy2(gen_file, dest_dir)
 
 def copy_vcruntime_binaries():
   arch = get_target_arch()
@@ -325,7 +325,9 @@ def create_chrome_binary_zip(binary, version):
 
   if create_native_mksnapshot == True:
     # Create a zip with the native version of the mksnapshot binary.
-    copy_chrome_binary('mksnapshot', NATIVE_MKSNAPSHOT_DIR, DIST_DIR)
+    copy_chrome_binary('mksnapshot', NATIVE_MKSNAPSHOT_DIR, DIST_DIR, True)
+    copy_chrome_binary('v8_context_snapshot_generator', NATIVE_MKSNAPSHOT_DIR, \
+                       DIST_DIR)
     dist_name = get_zip_name(binary, version)
     zip_file = os.path.join(SOURCE_ROOT, 'dist', dist_name)
     with scoped_cwd(DIST_DIR):
